@@ -1,11 +1,14 @@
 from flask import Flask, request, jsonify
 import requests
 import json
+import os
 app = Flask(__name__)
 
 AUTH_TOKEN = os.getenv('AUTH_TOKEN', '')
 SPARKPOST_API_KEY = os.getenv('SPARKPOST_API_KEY', '')
 SPARKPOST_API = "https://api.sparkpost.com/api/v1/transmissions?num_rcpt_errors=3"
+FORWARD_EMAIL = os.getenv('FORWARD_EMAIL', 'email@example.com')
+FROM_EMAIL = os.getenv('FROM_EMAIL', 'inbound-forward@example.com')
 
 SPARKPOST_HEADERS = {
     'Content-Type': 'application/json',
@@ -18,7 +21,7 @@ def hello():
     return "Hello World from Flask"
 
 @app.route("/sparkpost-handler", methods=["POST"])
-def handle_email()
+def handle_email():
     auth = request.headers.get('X-MessageSystems-Webhook-Token')
     if auth != AUTH_TOKEN:
         return 'not ok'
@@ -32,11 +35,14 @@ def handle_email()
       },
       "recipients": [
         {
-          "address": "thewebopsclubiitm@gmail.com"
+          "address": FORWARD_EMAIL
         }
       ],
       "content": {
-        "from": "inbound-forward@108hackathon.in",
+        "from": {
+            "name":"",
+            "email": FROM_EMAIL
+            },
     	"reply_to": "",
         "subject": "",
         "html": ""
@@ -50,12 +56,13 @@ def handle_email()
 	forward_data['content']['text'] = content['text']
 	forward_data['content']['subject'] = content['subject']
 	forward_data['content']['reply_to'] = email['msg_from']
+	forward_data['content']['from']['name'] = email['msg_from']
     	print "\n>>>>>>>> FORWARDING DATA"
 	print forward_data
 	print "\n>>>>>>>> CALLING SPARKPOST"
 	resp = requests.post(SPARKPOST_API, headers=SPARKPOST_HEADERS, data=json.dumps(forward_data))
 	print "\n>>>>>>>> SPARKPOST RESPONSE"
-	print resp
+	print resp.json()
 	return 'ok'
     except Exception, e:
         print "\n>>>>>>>> EXCEPTION"
@@ -64,84 +71,5 @@ def handle_email()
 
     return 'not ok'
 
-#@app.route("/aa", methods=["POST"])
-#def subject_access_review():
-#    data = request.get_json()
-#    response = {
-#        "apiVersion": "authorization.k8s.io/v1beta1",
-#        "kind": "SubjectAccessReview",
-#        "status": {
-#            "allowed": True
-#        }    
-#    }
-#    print ">>>> REQUEST:"
-#    print data
-#    if data:
-#        authorized, reason = namespace_service_account_authz(data)
-#        if authorized:
-#            return jsonify(response)
-#        else:
-#            response['status']['reason'] = reason
-#    response['status']['allowed'] = False
-#    print ">>>> RESPONSE:"
-#    print response
-#    print ""
-#    return jsonify(response)
-#
-#def namespace_service_account_authz(data):
-#    """
-#    data:
-#    {
-#      "apiVersion": "authorization.k8s.io/v1beta1",
-#      "kind": "SubjectAccessReview",
-#      "spec": {
-#	"resourceAttributes": {
-#	  "namespace": "kittensandponies",
-#	  "verb": "GET",
-#	  "group": "*",
-#	  "resource": "pods"
-#	},
-#	"user": "jane",
-#	"group": [
-#	  "group1",
-#	  "group2"
-#	]
-#      }
-#    }
-#    
-#    username format `system:serviceaccount:<namespace>:default`
-#    for valid action, user(namespace) == resourceAttributes.namespace	
-#    
-#    response:
-#    {
-#      "apiVersion": "authorization.k8s.io/v1beta1",
-#      "kind": "SubjectAccessReview",
-#      "status": {
-#	"allowed": true
-#      }
-#    }
-#    {
-#      "apiVersion": "authorization.k8s.io/v1beta1",
-#      "kind": "SubjectAccessReview",
-#      "status": {
-#	"allowed": false,
-#	"reason": "user does not have read access to the namespace"
-#      }
-#    }
-#    """
-#    if 'resourceAttributes' and 'user' in data['spec'].keys():
-#        user = data['spec']['user']
-#        resource_namespace = data['spec']['resourceAttributes']['namespace']
-#        
-#        user_split = user.split(':')
-#        if len(user_split) == 4:
-#            user_namespace = user_split[2]
-#            if user_namespace == resource_namespace:
-#                return True, 'authorized'
-#            else:
-#                return False, 'user not allowed to access ' + resource_namespace
-#    return False, 'un-recognizable request'
-
-
 if __name__ == "__main__":
-    app.run(host='0.0.0.0', debug=True, port=80)
+    app.run(host='0.0.0.0', debug=True, port=8080)

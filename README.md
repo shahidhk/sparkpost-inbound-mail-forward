@@ -1,4 +1,6 @@
-sparkpost-mail-forward
-----------------------
+sparkpost-inbound-mail-forward
+------------------------------
 
-Forward incoming emails to any mailbox when a domain is configured with sparkpost
+Microservice to forward incoming emails to any mailbox when a domain is configured with sparkpost
+
+TODO: Proper documentation
